@@ -1,128 +1,45 @@
-import gym, os
+
+import os
+import gymnasium as gym
 from itertools import count
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.distributions import Categorical
+from replay_matrix import ReplayMatrix 
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-env = gym.make("MountainCar-v0").unwrapped
-
-state_size = env.observation_space.shape[0]
-action_size = env.action_space.n
-lr = 0.0001
 
 class Actor(nn.Module):
     def __init__(self, state_size, action_size):
         super(Actor, self).__init__()
         self.state_size = state_size
         self.action_size = action_size
+
         self.linear1 = nn.Linear(self.state_size, 128)
-        self.linear2 = nn.Linear(128, 256)
-        self.linear3 = nn.Linear(256, self.action_size)
+        #self.linear2 = nn.Linear(128, 256)
+        self.linear2 = nn.Linear(128, self.action_size)
+        self.all_weights = list(self.linear1.parameters()) + list(self.linear2.parameters())
+        self.lr = 1e-3
+        self.optimizer = optim.Adam(list(self.linear1.parameters()) + list(self.linear2.parameters()), lr=self.lr)
 
     def forward(self, state):
         output = F.relu(self.linear1(state))
-        output = F.relu(self.linear2(output))
-        output = self.linear3(output)
-        distribution = Categorical(F.softmax(output, dim=-1))
-        return distribution
+        output = self.linear2(output)
+        tmp = F.softmax(output, dim=-1)
+        distribution = Categorical(tmp)
+        return distribution, torch.argmax(tmp)
 
-
-class Critic(nn.Module):
-    def __init__(self, state_size, action_size):
-        super(Critic, self).__init__()
-        self.state_size = state_size
-        self.action_size = action_size
-        self.linear1 = nn.Linear(self.state_size, 128)
-        self.linear2 = nn.Linear(128, 256)
-        self.linear3 = nn.Linear(256, 1)
-
-    def forward(self, state):
+    def get_log_prob(self, state,action):
         output = F.relu(self.linear1(state))
-        output = F.relu(self.linear2(output))
-        value = self.linear3(output)
-        return value
-
-
-def compute_returns(next_value, rewards, masks, gamma=0.99):
-    R = next_value
-    returns = []
-    for step in reversed(range(len(rewards))):
-        R = rewards[step] + gamma * R * masks[step]
-        returns.insert(0, R)
-    return returns
-
-
-def trainIters(actor, critic, n_iters):
-    optimizerA = optim.Adam(actor.parameters())
-    optimizerC = optim.Adam(critic.parameters())
-    for iter in range(n_iters):
-        print(iter)
-        state, _ = env.reset()
+        output = self.linear2(output)
         
-        log_probs = []
-        values = []
-        rewards = []
-        masks = []
-        entropy = 0
-        env.reset()
-       
+        return Categorical(F.softmax(output, dim=-1)).log_prob(action)
 
-        for i in count():
-            env.render()
-            #print("state",state) #(array([-0.52061,  0.     ], dtype=float32), {})
-            state = torch.tensor(state).to(device)
-            dist, value = actor(state), critic(state)
+    def get_prob(self, state, action):
+        output = F.relu(self.linear1(state))
+        output = self.linear2(output)
+        
+        return Categorical(F.softmax(output, dim=-1)).probs[action]
 
-            action = dist.sample()
-            next_state, reward, done, _, _ = env.step(action.cpu().numpy())
-            #print(next_state)
-
-            log_prob = dist.log_prob(action).unsqueeze(0)
-            entropy += dist.entropy().mean()
-
-            log_probs.append(log_prob)
-            values.append(value)
-            rewards.append(torch.tensor([reward], dtype=torch.float, device=device))
-            masks.append(torch.tensor([1-done], dtype=torch.float, device=device))
-
-            state = next_state
-
-            if done:
-                print('Iteration: {}, Score: {}'.format(iter, i))
-                break
-
-
-        next_state = torch.FloatTensor(next_state).to(device)
-        next_value = critic(next_state)
-        returns = compute_returns(next_value, rewards, masks)
-
-        log_probs = torch.cat(log_probs)
-        returns = torch.cat(returns).detach()
-        values = torch.cat(values)
-
-        advantage = returns - values
-
-        actor_loss = -(log_probs * advantage.detach()).mean()
-        critic_loss = advantage.pow(2).mean()
-
-        optimizerA.zero_grad()
-        optimizerC.zero_grad()
-        actor_loss.backward()
-        critic_loss.backward()
-        optimizerA.step()
-        optimizerC.step()
-    torch.save(actor, 'model/actor.pkl')
-    torch.save(critic, 'model/critic.pkl')
-    env.close()
-
-
-if __name__ == '__main__':
-
-    actor = Actor(state_size, action_size).to(device)
-
-    critic = Critic(state_size, action_size).to(device)
-    trainIters(actor, critic, n_iters=100)
