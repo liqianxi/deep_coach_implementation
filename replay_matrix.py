@@ -76,11 +76,16 @@ class ReplayMatrix:
             batch = self.buffer
         else:
             # batch = random.sample(self.buffer, batch_size)
-            sample_distro = self.softmax(range(len(self.buffer)), beta=0.1)
-            #print(self.buffer)
+            #sample_distro = self.softmax(range(len(self.buffer)), beta=0.1)
+            length = self.count
+            idx = random.sample(range(0,length),batch_size)
 
+            #batch = np.random.choice(self.buffer, size=batch_size, replace=False, p=sample_distro)
 
-            batch = np.random.choice(self.buffer, size=batch_size, replace=False, p=sample_distro)
+            batch = []
+            for each_idx in idx:
+                batch.append(self.buffer[each_idx])
+
         return batch
 
     def clear(self):

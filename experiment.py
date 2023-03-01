@@ -10,12 +10,12 @@ class IdentityDict(dict):
 class Experiment:
 
     def __init__(self, state_dim, num_actions, train_mode=1, feedback_mode=0, action_map=IdentityDict(), human_delay=0,
-                 max_episodes=100, max_steps=10000, learning_rate=0.01, hidden_size=100, Lambda=0.95, alpha=0.01,betta=1.5,
+                 max_episodes=100, max_steps=10000, learning_rate=0.01, hidden_size=100, Lambda=0.95, alpha=0.01,beta=1.5,
                  tau=0.001, batch_size=32, action_select=1, action_repeat=1, sleep_time=0.01, replay_limit=10000,
                  gamma=0.0, temperature=None, grad_norm_clip=None, replacing=True, plot_kld=True, plot_feed=True,
                  meta_file=None, malmo_mission=None, name=''):
         '''
-        :param betta: entropy regularization coefficient.
+        :param beta: entropy regularization coefficient.
         :param state_dim: Dimensionality of the state space
         :param num_actions: Dimensionality of the action space
         :param train_mode: Training procedure (0 for eligibility trace; 1 for replay memory)
@@ -43,7 +43,7 @@ class Experiment:
         :param meta_file: Path to .meta file for reloading a pre-trained convolutional encoder
         :param malmo_mission: Path to Malmo mission XML to use for experiment
         '''
-        self.betta = betta
+        self.beta = beta
         self.state_dim = state_dim
         self.num_actions = num_actions
         self.action_map = action_map
@@ -93,7 +93,7 @@ class Experiment:
         if len(self.name) == 0:
             fields = [self.state_dim, self.num_actions, self.train_mode, self.feedback_mode,
                       self.human_delay, self.max_episodes, self.max_steps, self.learning_rate, self.hidden_size,
-                      self.Lambda, self.alpha, self.betta,self.tau, self.batch_size, self.action_select, self.action_repeat,
+                      self.Lambda, self.alpha, self.beta,self.tau, self.batch_size, self.action_select, self.action_repeat,
                       self.sleep_time, self.replay_limit, self.gamma, self.temperature, self.grad_norm_clip, self.replacing,
                       self.malmo_mission.split('/')[-1]]
             fields = map(str, fields)

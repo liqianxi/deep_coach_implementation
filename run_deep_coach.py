@@ -5,7 +5,8 @@ from deep_coach import trainIters
 import torch
 
 def main():
-    env = gym.make("MountainCar-v0",render_mode="human").env
+    #env = gym.make("MountainCar-v0",render_mode="human").env
+    env = gym.make("MountainCar-v0").env
     state_size = env.observation_space.shape[0]
     action_size = env.action_space.n
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -49,7 +50,7 @@ def main():
                       learning_rate=policy_lr, Lambda=eligibility_decay, alpha=0.0,
                       train_mode=2, hidden_size=30, human_delay=human_delay, 
                       gamma=0.0, grad_norm_clip=None, temperature=None, 
-                      replacing=False, replay_limit=replay_limit)
+                      replacing=False, replay_limit=replay_limit,feedback_mode=1)
 
     actor = Actor(state_size, action_size).to(device)
 

@@ -1,16 +1,26 @@
-
+from graphviz import Digraph
+import torch
+from torch.autograd import Variable
 import torch
 from actor import Actor
+from torchviz import make_dot
 
-actor_model = Actor(3,3)
 
-input = torch.randn(1, 3)
-input = torch.tensor([[1.0,1.0,1.0]])
-action = torch.tensor([[0]])
-forward = actor_model(input)[0].log_prob(action)
+#actor_model = Actor(3,3)
 
-forward.backward()
-print(actor_model.linear1.weight.grad.shape)
+
+x1 = torch.tensor([[1.0,2.0]],requires_grad=True)
+x2 = torch.tensor([[2.0,2.0]],requires_grad=True)
+
+y = torch.sum(x1 * torch.log(x1))
+# with torch.no_grad():
+#     action = torch.tensor([[0]])
+# forward = actor_model(input)[0].log_prob(action)
+
+# forward.backward()
+y.backward()
+print(y)
+make_dot(y).view()
 
 
 # class new2():
@@ -37,3 +47,18 @@ print(actor_model.linear1.weight.grad.shape)
 # log_p = torch.log(p)
 # print(log_p)
 # print(torch.sum(p*log_p))
+
+# import random
+# from collections import deque
+# import numpy as np
+
+
+# from human_thread import FeedbackCollector
+
+
+# feedback_thread = FeedbackCollector()
+# feedback_thread.start()
+# while True:
+#     tmp = feedback_thread.poll()
+#     if tmp:
+#         print(tmp)
